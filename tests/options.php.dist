@@ -1,6 +1,6 @@
 <?php
 
 # If you want to perform Transport tests please be shure
-# that files at tests/HTTP/options.php
+# that files from tests/HTTP/options.php available from defined URL
 #
-define('TEST_TRANSPORT_CURL_BASEURL', 'http://test.http.vognev.org.ua/');
+#define('TEST_TRANSPORT_CURL_BASEURL', 'http://example.com/');
