@@ -9,7 +9,7 @@ require_once "WebDAV/Client.php";
 class WebDAV_Stream_Wrapper
 {
     public static $debug = true;
-    
+
     public $context;
 
     public static $_transport = 'Curl';
@@ -36,7 +36,7 @@ class WebDAV_Stream_Wrapper
     public function stream_open($path, $mode)
     {
         if (!($this->_url = $this->_parseStreamUrl($path))) {
-            return false;
+            return null;
         }
 
         $this->_stat = $this->url_stat($path);
@@ -44,24 +44,20 @@ class WebDAV_Stream_Wrapper
         if (!$this->_stat['mode']) { // file does not exists
 
             if (!preg_match('|[aw\+]|', $mode)) { // flag is not assumes the file can be created
-                return false;
-            }
-
-            if (strrpos($_ = $this->_url->getPart(HTTP_URL::URL_PATH), '/') == strlen($_) - 1) {
-                throw new WebDAV_Stream_Exception("Unsupported resource type (create the directory?)");
+                return null;
             }
 
             $this->_stat['mode']    = 0100000; //S_IFREG
             $this->_handle          = fopen('php://temp', 'r+');
 
         } else {
-            if (($this->_stat['mode'] & 0170000) == 010000) { // is file
+            if (($this->_stat['mode'] & 0170000) == 0100000) { // is file
                 $response           = $this->_getClient()->get($this->_url);
                 $this->_handle      = fopen('php://temp', 'r+');
 
+                rewind($response->getBody());
                 stream_copy_to_stream($response->getBody(), $this->_handle);
-            } else {
-                throw new WebDAV_Stream_Exception("Unsupported resource type (fopen the directory?)");
+                rewind($this->_handle);
             }
         }
 
@@ -88,9 +84,9 @@ class WebDAV_Stream_Wrapper
                     'failed to update WebDAV resource at %s', $this->_url->getUrl()
                 ));
             }
-
-            fclose($this->_handle);
-            $this->_handle = null;
+            $this->_handleChanged = false;
+            //fclose($this->_handle);
+            //$this->_handle = null;
         }
     }
 
@@ -129,7 +125,7 @@ class WebDAV_Stream_Wrapper
     public function url_stat($url/*, $flags*/)
     {
         $stat = array(
-            'mode'          => 0,
+            'mode'          => 0777,
             'atime'         => 0,
             'mtime'         => 0
         );
@@ -160,12 +156,12 @@ class WebDAV_Stream_Wrapper
                     if ($typeprop->getDomElement()->firstChild) { // resourcetype has subnode
                         if ('collection' == $typeprop->getDomElement()->firstChild->localName &&
                             'DAV:' == $typeprop->getDomElement()->firstChild->namespaceURI) {
-                            $stat['mode'] = 040000; // S_IFDIR
+                            $stat['mode'] |= 040000; // S_IFDIR
                         } else { // have no idea how to parse this resourcetype
                             throw new WebDAV_Stream_Exception("propfind response contains unknown 'resourcetype' node");
                         }
                     } else { // node seems is a file
-                        $stat['mode'] = 0100000; // S_IREG
+                        $stat['mode'] |= 0100000; // S_IREG
                         if ($sizeprop = $propstat->getByName('getcontentlength', 'DAV:')) {
                             $stat['size'] = intval($sizeprop->getValue());
                         }
@@ -184,6 +180,8 @@ class WebDAV_Stream_Wrapper
                 } else {
                     throw new WebDAV_Stream_Exception("propfind response does not contains 'resourcetype' node");
                 }
+            } elseif (404 == $propfindResponse->getResponseCode()) {
+                return array('mode' => 0);
             }
         }
 
@@ -304,10 +302,10 @@ class WebDAV_Stream_Wrapper
         $url = new HTTP_URL($path);
 
         switch ($url->getPart(HTTP_URL::URL_SCHEME)) {
-            case 'webdav':
+            case 'dav':
                 $url->setPart(HTTP_URL::URL_SCHEME, 'http');
                 break;
-            case 'webdavs':
+            case 'davs':
                 $url->setPart(HTTP_URL::URL_SCHEME, 'https');
                 break;
             default:
@@ -337,7 +335,10 @@ class WebDAV_Stream_Wrapper
             ) + $context
         );
     }
+
+    /* static methods */
 }
 
-stream_wrapper_register('webdav',   'WebDAV_Stream_Wrapper');
-stream_wrapper_register('webdavs',  'WebDAV_Stream_Wrapper');
+stream_wrapper_register('dav',   'WebDAV_Stream_Wrapper');
+stream_wrapper_register('davs',  'WebDAV_Stream_Wrapper');
+

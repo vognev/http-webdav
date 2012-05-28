@@ -35,11 +35,6 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
 
             $options[CURLOPT_INFILE]                = $body;
             $options[CURLOPT_INFILESIZE]            = $size;
-
-            if (!$request->hasHeader('Content-Length')) {
-                $request->setHeader('Content-Length', $size);
-            }
-
         } else {
             $options[CURLOPT_POSTFIELDS]            = $request->getBodyAsString();
         }
