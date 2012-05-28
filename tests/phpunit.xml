@@ -26,7 +26,6 @@
 
     <php>
         <display_errors>true</display_errors>
-        <includePath>../source</includePath>
     </php>
 
 </phpunit>

@@ -37,7 +37,9 @@ class WebDAV_Client extends HTTP_Client
     {
         $url = new HTTP_URL($url);
 
-        if (!in_array('PROPFIND', (array) $this->_getOptions($url))) {
+        if (!$this->_getOptions($url, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('PROPFIND', $options)) {
             return false;
         }
 
@@ -52,7 +54,9 @@ class WebDAV_Client extends HTTP_Client
 
     public function get(HTTP_URL $url)
     {
-        if (!in_array('GET', (array) $this->_getOptions($url))) {
+        if (!$this->_getOptions($url, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('GET', $options)) {
             return false;
         }
         $request = $this->createRequest($url);
@@ -62,7 +66,9 @@ class WebDAV_Client extends HTTP_Client
 
     public function put(HTTP_URL $url, $body)
     {
-        if (!in_array('PUT', (array) $this->_getOptions($url))) {
+        if (!$this->_getOptions($url, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('PUT', $options)) {
             return false;
         }
         $request = $this->createRequest($url);
@@ -88,7 +94,9 @@ class WebDAV_Client extends HTTP_Client
 
     public function mkcol(HTTP_URL $url)
     {
-        if (!in_array('MKCOL', (array) $this->_getOptions($url))) {
+        if (!$this->_getOptions($url, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('MKCOL', $options)) {
             return false;
         }
 
@@ -101,7 +109,9 @@ class WebDAV_Client extends HTTP_Client
 
     public function rename(HTTP_URL $old, HTTP_URL $new)
     {
-        if (!in_array('MOVE', (array) $this->_getOptions($old))) {
+        if (!$this->_getOptions($old, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('MOVE', $options)) {
             return false;
         }
 
@@ -109,8 +119,6 @@ class WebDAV_Client extends HTTP_Client
         $request->setMethod('MOVE');
         $request->setHeader('Destination', $new->__toString());
         $response = $this->executeRequest($request);
-
-        var_dump($response->getBodyAsString());
 
         switch ($response->getResponseCode()) {
             case 201:
@@ -121,21 +129,24 @@ class WebDAV_Client extends HTTP_Client
         }
     }
 
-    public function delete($url)
+    public function delete(HTTP_URL $url)
     {
-        $url = new HTTP_URL($url);
-
-        if (!in_array('DELETE', (array) $this->_getOptions($url))) {
+        if (!$this->_getOptions($url, $levels, $options) ||
+            !in_array('1', $levels) ||
+            !in_array('DELETE', $options)) {
             return false;
         }
-
-        // todo: lock token
 
         $request = $this->createRequest($url);
         $request->setMethod('DELETE');
         $response = $this->executeRequest($request);
 
         return 204 === $response->getResponseCode();
+    }
+
+    public function lock(HTTP_URL $url, $mode)
+    {
+
     }
 
     public function createRequest($url)
@@ -148,9 +159,11 @@ class WebDAV_Client extends HTTP_Client
 
     /**
      * @param HTTP_URL $url
-     * @return array|bool
+     * @param array|null &$levels
+     * @param array|null &$options
+     * @return bool
      */
-    protected function _getOptions(HTTP_URL $url)
+    protected function _getOptions(HTTP_URL $url, &$levels = null, &$options = null)
     {
         $request    = $this->createRequest($url);
 
@@ -161,15 +174,18 @@ class WebDAV_Client extends HTTP_Client
             return false;
         }
 
-        if ($response->hasHeader('DAV')) {
-            $levels = array_map('trim', explode(',', $response->getHeader('DAV'))) or array();
-            if (false === array_search("1", $levels)) {
-                return false;
-            }
+        if (!$response->hasHeader('DAV')) {
+            return false;
         }
 
-        $options = array_map('trim', explode(',', $response->getHeader('Allow'))) or array();
+        $levels = &array_map('trim', explode(',', $response->getHeader('DAV'))) or array();
 
-        return $options;
+        if (!$response->hasHeader('Allow')) {
+            return false;
+        }
+
+        $options = &array_map('trim', explode(',', $response->getHeader('Allow'))) or array();
+
+        return true;
     }
 }

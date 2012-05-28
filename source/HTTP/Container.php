@@ -62,12 +62,4 @@ class HTTP_Container
             return (string) $this->_body;
         }
     }
-
-    public function __destruct()
-    {
-        if (is_resource($this->_body)) {
-            fclose($this->_body);
-            $this->_body = null;
-        }
-    }
 }

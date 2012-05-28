@@ -4,6 +4,12 @@
  */
 require_once 'PHPUnit/Runner/Version.php';
 
+set_include_path(implode(PATH_SEPARATOR, array(
+    __DIR__,
+    realpath(__DIR__ . '/../source'),
+    get_include_path()
+)));
+
 $phpunitVersion = PHPUnit_Runner_Version::id();
 if ($phpunitVersion == '@package_version@' || version_compare($phpunitVersion, '3.5.5', '>=')) {
     require_once 'PHPUnit/Autoload.php'; // >= PHPUnit 3.5.5

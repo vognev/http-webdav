@@ -28,7 +28,6 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
         $options            = $this->getOptions();
 
         if(is_resource($request->getBody())) {
-
             $body = $request->getBody();
             fseek($body, 0, SEEK_END);
             $size = ftell($body);
@@ -36,6 +35,11 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
 
             $options[CURLOPT_INFILE]                = $body;
             $options[CURLOPT_INFILESIZE]            = $size;
+
+            if (!$request->hasHeader('Content-Length')) {
+                $request->setHeader('Content-Length', $size);
+            }
+
         } else {
             $options[CURLOPT_POSTFIELDS]            = $request->getBodyAsString();
         }
@@ -62,9 +66,7 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
             CURLOPT_FAILONERROR             => false,
             CURLOPT_HTTPHEADER              => $request->getHeaders(),
             CURLOPT_FILE                    => $fh,
-            CURLOPT_WRITEHEADER             => $hh,
-            //CURLOPT_VERBOSE                 => true,
-            //CURLOPT_STDERR                  => fopen('/tmp/curl.txt', 'w')
+            CURLOPT_WRITEHEADER             => $hh
         );
 
         curl_setopt_array($ch, $options);
@@ -78,7 +80,9 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
         $response->setResponseCode(curl_getinfo($ch, CURLINFO_HTTP_CODE));
         $response->setBody($fh);
 
-        foreach($this->_parseHeaders($hh) as $name => $value) {
+        $_hp = new HTTP_Transport_HeadersParser($hh);
+
+        foreach($_hp as $name => $value) {
             $response->setHeader($name, $value);
         }
 

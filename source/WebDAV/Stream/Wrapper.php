@@ -2,6 +2,10 @@
 require_once 'WebDAV/Stream/Exception.php';
 require_once "WebDAV/Client.php";
 
+/**
+ * stat mode flags: http://www.php.net/manual/en/function.stat.php#34919
+ */
+
 class WebDAV_Stream_Wrapper
 {
     public static $debug = true;
@@ -29,106 +33,45 @@ class WebDAV_Stream_Wrapper
 
     /* stream functions */
 
-    public function stream_open($path, $mode, $options, &$opened_path)
+    public function stream_open($path, $mode)
     {
         if (!($this->_url = $this->_parseStreamUrl($path))) {
             return false;
         }
 
-        // issue propfind
-        $propfind = new WebDAV_Propfind(WebDAV_Propfind::MODE_PROP);
-        $propfind->setProperty('resourcetype');
-        $propfind->setProperty('getcontentlength');
-        $propfind->setProperty('getlastmodified');
-        $propfind->setProperty('creationdate');
+        $this->_stat = $this->url_stat($path);
 
-        $propfindResponse = $this->_getClient()->propfind(
-            $this->_url, $propfind
-        );
+        if (!$this->_stat['mode']) { // file does not exists
 
-        $this->_stat = array(
-            'mode'          => 0,
-            'atime'         => 0,
-            'mtime'         => 0,
-            'ctime'         => 0
-        );
-
-        switch($propfindResponse->getResponseCode()) {
-            case 207: // resource exists, parse stat
-                $multistatus = new WebDAV_Multistatus(
-                    $propfindResponse->getBodyAsString()
-                );
-
-                $propstat = $multistatus->getHrefPropstat($this->_url->getPart(HTTP_URL::URL_PATH));
-                if (($typeprop = $propstat->getByName('resourcetype', 'DAV:'))) {
-                    if ($typeprop->getDomElement()->firstChild) { // resourcetype has subnode
-                        if ('collection' == $typeprop->getDomElement()->firstChild->localName &&
-                            'DAV:' == $typeprop->getDomElement()->firstChild->namespaceURI) {
-                            $this->_stat['mode'] &= ~0100000;   // clear S_IFREG
-                            $this->_stat['mode'] |= 040000;     // set S_IFDIR
-                        } else {
-                            // have no idea how to parse this resourcetype
-                            return false;
-                        }
-                    } else {
-                        // node is a file
-                        if ($sizeprop = $propstat->getByName('getcontentlength', 'DAV:')) {
-                            $this->_stat['size'] = intval($sizeprop->getValue());
-                        }
-                    }
-
-                    if ($mtimeprop = $propstat->getByName('getlastmodified', 'DAV:')) {
-                        $attributes = $mtimeprop->getDomElement()->attributes;
-                        if ('dateTime.rfc1123' == $attributes->getNamedItem('dt')->nodeValue) {
-                            // todo: hate time and timezones
-                            // todo: in whose timezone (ours or theirs) this should be?
-                            // Sun, 27 May 2012 11:42:26 GMT
-                            $date = DateTime::createFromFormat(DateTime::RFC1123, $mtimeprop->getValue());
-                            $this->_stat['atime'] = $this->_stat['mtime'] = $date->getTimestamp();
-                        } else {
-                            // fuck them all
-                            $this->_stat['atime'] = $this->_stat['mtime'] = strtotime($mtimeprop->getValue());
-                        }
-                    }
-
-                    if ($ctimeprop = $propstat->getByName('creationdate', 'DAV:')) {
-                        // todo
-                    }
-
-                } else {
-                    // node has no resourcetype
-                    return false;
-                }
-
-                if (($this->_stat['mode'] & 0170000) == 040000) {
-                    // is directory
-                } else {
-                    // is file ?
-                    $response = $this->_getClient()->get($this->_url);
-                    $this->_handle = fopen('php://temp', 'r+');
-                    stream_copy_to_stream($response->getBody(), $this->_handle);
-                }
-
-                break;
-            case 404: // not found is ok in write modes
-                if (preg_match('|[aw\+]|', $mode)) {
-                    $this->_handle = fopen('php://temp', 'r+');
-                    break;
-                }
-            default:
+            if (!preg_match('|[aw\+]|', $mode)) { // flag is not assumes the file can be created
                 return false;
-                break;
+            }
+
+            if (strrpos($_ = $this->_url->getPart(HTTP_URL::URL_PATH), '/') == strlen($_) - 1) {
+                throw new WebDAV_Stream_Exception("Unsupported resource type (create the directory?)");
+            }
+
+            $this->_stat['mode']    = 0100000; //S_IFREG
+            $this->_handle          = fopen('php://temp', 'r+');
+
+        } else {
+            if (($this->_stat['mode'] & 0170000) == 010000) { // is file
+                $response           = $this->_getClient()->get($this->_url);
+                $this->_handle      = fopen('php://temp', 'r+');
+
+                stream_copy_to_stream($response->getBody(), $this->_handle);
+            } else {
+                throw new WebDAV_Stream_Exception("Unsupported resource type (fopen the directory?)");
+            }
         }
 
-        if ($this->_handle) {
-            // 'w' -> open for writing, truncate existing files
-            if (strpos($mode, "w") !== false) {
-                ftruncate($this->_handle, 0);
-            }
-            // 'a' -> open for appending
-            if (strpos($mode, "a") !== false) {
-                fseek($this->_handle, 0, SEEK_END);
-            }
+        // 'w' -> open for writing, truncate existing files
+        if (strpos($mode, "w") !== false) {
+            ftruncate($this->_handle, 0);
+        }
+        // 'a' -> open for appending
+        if (strpos($mode, "a") !== false) {
+            fseek($this->_handle, 0, SEEK_END);
         }
 
         return true;
@@ -136,8 +79,7 @@ class WebDAV_Stream_Wrapper
 
     public function stream_close()
     {
-        // todo: locking of connected resource?
-        // todo: we can throw exception here to notify the sync is failed
+        // todo: locking of connected resource
 
         if ($this->_handle) {
 
@@ -184,15 +126,73 @@ class WebDAV_Stream_Wrapper
         return fseek($this->_handle, $pos, $whence);
     }
 
-    public function url_stat($url)
+    public function url_stat($url/*, $flags*/)
     {
-        // todo: refactor stream_open to retreive stats using this function
-        throw new WebDAV_Stream_Exception("Uninmplemented");
+        $stat = array(
+            'mode'          => 0,
+            'atime'         => 0,
+            'mtime'         => 0
+        );
+
+        if ($url = $this->_parseStreamUrl((string) $url)) {
+            // issue propfind
+            $propfind = new WebDAV_Propfind(WebDAV_Propfind::MODE_PROP);
+            $propfind->setProperty('resourcetype');
+            $propfind->setProperty('getcontentlength');
+            $propfind->setProperty('getlastmodified');
+
+            $propfindResponse = $this->_getClient()->propfind(
+                $url, $propfind
+            );
+
+            if (207 == $propfindResponse->getResponseCode()) {
+
+                $multistatus = new WebDAV_Multistatus(
+                    $propfindResponse->getBodyAsString()
+                );
+
+                // in case of directory some servers append it with '/'
+                $propstat = false === ($propstat = $multistatus->getHrefPropstat($url->getPart(HTTP_URL::URL_PATH))) ?
+                            $multistatus->getHrefPropstat($url->getPart(HTTP_URL::URL_PATH) . '/')
+                            : $propstat;
+
+                if (($typeprop = $propstat->getByName('resourcetype', 'DAV:'))) {
+                    if ($typeprop->getDomElement()->firstChild) { // resourcetype has subnode
+                        if ('collection' == $typeprop->getDomElement()->firstChild->localName &&
+                            'DAV:' == $typeprop->getDomElement()->firstChild->namespaceURI) {
+                            $stat['mode'] = 040000; // S_IFDIR
+                        } else { // have no idea how to parse this resourcetype
+                            throw new WebDAV_Stream_Exception("propfind response contains unknown 'resourcetype' node");
+                        }
+                    } else { // node seems is a file
+                        $stat['mode'] = 0100000; // S_IREG
+                        if ($sizeprop = $propstat->getByName('getcontentlength', 'DAV:')) {
+                            $stat['size'] = intval($sizeprop->getValue());
+                        }
+                    }
+
+                    if ($mtimeprop = $propstat->getByName('getlastmodified', 'DAV:')) {
+                        $attributes = $mtimeprop->getDomElement()->attributes;
+                        if ('dateTime.rfc1123' == $attributes->getNamedItem('dt')->nodeValue) {
+                            // todo: in whose timezone (ours or theirs) this should be?
+                            $date = DateTime::createFromFormat(DateTime::RFC1123, $mtimeprop->getValue());
+                            $this->_stat['atime'] = $this->_stat['mtime'] = $date->getTimestamp();
+                        } else { // fuck them all
+                            $this->_stat['atime'] = $this->_stat['mtime'] = strtotime($mtimeprop->getValue());
+                        }
+                    }
+                } else {
+                    throw new WebDAV_Stream_Exception("propfind response does not contains 'resourcetype' node");
+                }
+            }
+        }
+
+        return $stat;
     }
 
     /* directory iterating methods */
 
-    public function dir_opendir($href, $options)
+    public function dir_opendir($href)
     {
         if (!$this->_url = $this->_parseStreamUrl($href)) {
             return false;
@@ -222,7 +222,7 @@ class WebDAV_Stream_Wrapper
         $this->_dirEntries  = array();
         $this->_dirPosition = 0;
 
-        foreach($propstats as $propstatHref => /** @var $propstat WebDAV_Propstat */ $propstat) {
+        foreach(array_keys($propstats) as $propstatHref) {
 
             if ($propstatHref == $this->_url->getPart(HTTP_URL::URL_PATH))
                 continue; // skip .

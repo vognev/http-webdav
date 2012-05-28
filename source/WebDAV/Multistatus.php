@@ -36,32 +36,31 @@ class WebDAV_Multistatus extends DOMDocument
 
         $response = $this->getResponseByHref($href);
 
-        if ($response) {
+        if (!$response) {
+            return false;
+        }
 
-            $propstats = $this->_xpath->query('./*[local-name() = "propstat"]', $response);
+        $propstats = $this->_xpath->query('./*[local-name() = "propstat"]', $response);
 
-            for($i = 0; $i < $propstats->length; $i++) {
+        for($i = 0; $i < $propstats->length; $i++) {
 
-                $status = $this->_xpath->query('./*[local-name() = "status"]', $propstats->item($i));
-                if (1 != $status->length) {
-                    throw new WebDAV_Exception("propstat for href '$href' does not contains 'status' element");
-                }
-
-                if (!preg_match('#^HTTP/1\.(?:0|1) (\d+) \w+#i', $status->item(0)->nodeValue, $matches)) {
-                    throw new WebDAV_Exception("'status' element for url '$href' contains invalid HTTP response code");
-                }
-
-                $code = intval($matches[1]);
-
-                // we collect only the succesful props
-                if (200 !== $code) continue;
-
-                $props = $this->_xpath->query('./*[local-name() = "prop"]/*', $propstats->item($i));
-                for($j = 0; $j < $props->length; $j++)
-                    $propstat->push($props->item($j));
+            $status = $this->_xpath->query('./*[local-name() = "status"]', $propstats->item($i));
+            if (1 != $status->length) {
+                throw new WebDAV_Exception("propstat for href '$href' does not contains 'status' element");
             }
-        } else {
-            // todo throw
+
+            if (!preg_match('#^HTTP/1\.(?:0|1) (\d+) \w+#i', $status->item(0)->nodeValue, $matches)) {
+                throw new WebDAV_Exception("'status' element for url '$href' contains invalid HTTP response code");
+            }
+
+            $code = intval($matches[1]);
+
+            // we collect only the succesful props
+            if (200 !== $code) continue;
+
+            $props = $this->_xpath->query('./*[local-name() = "prop"]/*', $propstats->item($i));
+            for($j = 0; $j < $props->length; $j++)
+                $propstat->push($props->item($j));
         }
 
         return $propstat;

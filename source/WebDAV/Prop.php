@@ -2,10 +2,10 @@
 
 class WebDAV_Prop
 {
-    /** @var DOMElement */
+    /** @var DOMNode */
     protected $_element;
 
-    public function __construct(DOMElement $element)
+    public function __construct(DOMNode $element)
     {
         $this->_element     = $element;
     }

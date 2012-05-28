@@ -1,6 +1,7 @@
 <?php
 require_once "HTTP/Transport/Interface.php";
 require_once "HTTP/Transport/Exception.php";
+require_once "HTTP/Transport/HeadersParser.php";
 
 abstract class HTTP_Transport_Abstract implements HTTP_Transport_Interface
 {
@@ -22,31 +23,6 @@ abstract class HTTP_Transport_Abstract implements HTTP_Transport_Interface
     }
 
     /**
-     * @param resource|mixed $headers
-     * @return array
-     */
-    protected function _parseHeaders($headers)
-    {
-        $aHeaders = array();
-
-        if (is_resource($headers)) {
-            rewind($headers);
-            $headers = stream_get_contents($headers);
-        } else {
-            $headers = (string) $headers;
-        }
-
-        foreach(explode("\r\n", $headers) as $headerRow) {
-            if (empty($headerRow)) continue;
-            if (false === strpos($headerRow, ':')) continue;
-            list($name, $value) = explode(":", $headerRow, 2);
-            $aHeaders[$name] = trim($value);
-        }
-
-        return $aHeaders;
-    }
-
-    /**
      * @static
      * @param string $name Transport name
      * @param array $options
@@ -58,8 +34,8 @@ abstract class HTTP_Transport_Abstract implements HTTP_Transport_Interface
         $class      = 'HTTP_Transport_' . $name;
         $classFile  = 'HTTP/Transport/' . $name . '.php';
 
-        if (!class_exists($class)) {
-            require_once $classFile;
+        if (!class_exists($class) && !@include_once($classFile)) {
+            return false;
         }
 
         return new $class($options);
