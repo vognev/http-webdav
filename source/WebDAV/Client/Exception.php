@@ -1,4 +1,5 @@
 <?php
-require_once "WebDAV/Exception.php";
 
-class WebDAV_Client_Exception extends WebDAV_Exception {}
+namespace WebDAV\Client;
+
+class Exception extends \WebDAV\Exception {}

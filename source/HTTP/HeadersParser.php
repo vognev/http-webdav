@@ -1,5 +1,8 @@
 <?php
-class HTTP_Transport_HeadersParser implements Iterator, Countable
+
+namespace HTTP;
+
+class HeadersParser implements \Iterator, \Countable
 {
     protected $_headers = array();
 

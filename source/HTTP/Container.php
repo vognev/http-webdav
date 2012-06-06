@@ -1,6 +1,8 @@
 <?php
 
-class HTTP_Container
+namespace HTTP;
+
+class Container
 {
     protected $_headers = array();
 

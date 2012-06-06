@@ -1,13 +1,12 @@
 <?php
 require_once 'PHPUnit/Framework/TestCase.php';
-require_once "HTTP/Request.php";
 
 class HTTP_ContainerTest extends PHPUnit_Framework_TestCase
 {
     public function testHeadersOperations()
     {
         $header     = 'application/octet-stream';
-        $container  = new HTTP_Container();
+        $container  = new \HTTP\Container();
 
         $this->assertFalse($container->hasHeader('Content-Type'));
 
@@ -29,7 +28,7 @@ class HTTP_ContainerTest extends PHPUnit_Framework_TestCase
         fwrite($stream,  $content = 'foobar');
         rewind($stream);
 
-        $container      = new HTTP_Container();
+        $container      = new \HTTP\Container();
 
         $container->setBody('');
         $this->assertEquals('', $container->getBodyAsString());

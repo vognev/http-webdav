@@ -1,13 +1,11 @@
 <?php
-require_once "HTTP/Request/Exception.php";
-require_once "HTTP/Container.php";
 
-require_once "HTTP/URL.php";
+namespace HTTP;
 
-class HTTP_Request extends HTTP_Container
+class Request extends Container
 {
     /**
-     * @var HTTP_URL
+     * @var URL
      */
     protected $_url;
 
@@ -26,11 +24,11 @@ class HTTP_Request extends HTTP_Container
     public function setUrl($url)
     {
         if (is_string($url)) {
-            $this->_url = new HTTP_URL($url);
-        } elseif ($url instanceof HTTP_URL) {
+            $this->_url = new URL($url);
+        } elseif ($url instanceof URL) {
             $this->_url = $url;
         } else {
-            throw new HTTP_Request_Exception("Invalid \$url specified");
+            throw new Request\Exception("Invalid \$url specified");
         }
     }
 

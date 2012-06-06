@@ -1,14 +1,15 @@
 <?php
-require_once 'WebDAV/Propstat.php';
 
-class WebDAV_Multistatus extends DOMDocument
+namespace WebDAV;
+
+class Multistatus extends \DOMDocument
 {
     protected $_xpath;
 
     public function __construct($response)
     {
         $this->loadXML($response);
-        $this->_xpath = new DOMXPath($this);
+        $this->_xpath = new \DOMXPath($this);
     }
 
     public function getPropstats()
@@ -32,7 +33,7 @@ class WebDAV_Multistatus extends DOMDocument
 
     public function getHrefPropstat($href)
     {
-        $propstat = new WebDAV_Propstat();
+        $propstat = new Propstat();
 
         $response = $this->getResponseByHref($href);
 
@@ -46,11 +47,11 @@ class WebDAV_Multistatus extends DOMDocument
 
             $status = $this->_xpath->query('./*[local-name() = "status"]', $propstats->item($i));
             if (1 != $status->length) {
-                throw new WebDAV_Exception("propstat for href '$href' does not contains 'status' element");
+                throw new Exception("propstat for href '$href' does not contains 'status' element");
             }
 
             if (!preg_match('#^HTTP/1\.(?:0|1) (\d+) \w+#i', $status->item(0)->nodeValue, $matches)) {
-                throw new WebDAV_Exception("'status' element for url '$href' contains invalid HTTP response code");
+                throw new Exception("'status' element for url '$href' contains invalid HTTP response code");
             }
 
             $code = intval($matches[1]);

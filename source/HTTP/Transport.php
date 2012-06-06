@@ -1,9 +1,8 @@
 <?php
-require_once "HTTP/Transport/Interface.php";
-require_once "HTTP/Transport/Exception.php";
-require_once "HTTP/Transport/HeadersParser.php";
 
-abstract class HTTP_Transport_Abstract implements HTTP_Transport_Interface
+namespace HTTP;
+
+abstract class Transport implements TransportInterface
 {
     protected $_options = array();
 
@@ -26,18 +25,12 @@ abstract class HTTP_Transport_Abstract implements HTTP_Transport_Interface
      * @static
      * @param string $name Transport name
      * @param array $options
-     * @return HTTP_Transport_Abstract
-     * @throws HTTP_Transport_Exception
+     * @return Transport
+     * @throws Transport\Exception
      */
     public static function factory($name, $options = array())
     {
-        $class      = 'HTTP_Transport_' . $name;
-        $classFile  = 'HTTP/Transport/' . $name . '.php';
-
-        if (!class_exists($class) && !@include_once($classFile)) {
-            return false;
-        }
-
+        $class      = 'HTTP\\Transport\\' . $name;
         return new $class($options);
     }
 }

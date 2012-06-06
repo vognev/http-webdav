@@ -1,5 +1,5 @@
 <?php
-require_once "HTTP/Transport/HeadersParser.php";
+require_once "HTTP/HeadersParser.php";
 
 class HTTP_Transport_HeadersParserTest extends PHPUnit_Framework_TestCase
 {
@@ -22,7 +22,7 @@ class HTTP_Transport_HeadersParserTest extends PHPUnit_Framework_TestCase
 
     protected function _testParserBehaviour($headers)
     {
-        $parser = new HTTP_Transport_HeadersParser($headers);
+        $parser = new \HTTP\HeadersParser($headers);
         $this->assertEquals(count($parser), count($this->_headers));
         foreach($parser as $k => $v) {
             $this->assertTrue(in_array("$k: $v", $this->_headers));

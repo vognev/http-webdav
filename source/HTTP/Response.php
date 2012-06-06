@@ -1,14 +1,13 @@
 <?php
-require_once "HTTP/Response/Exception.php";
-require_once "HTTP/Container.php";
-require_once "HTTP/Request.php";
 
-class HTTP_Response extends HTTP_Container
+namespace HTTP;
+
+class Response extends Container
 {
     protected $_responseCode    = 0;
 
     /**
-     * @var HTTP_Request
+     * @var \HTTP\Request
      */
     protected $_request;
 
@@ -22,7 +21,7 @@ class HTTP_Response extends HTTP_Container
         return $this->_responseCode;
     }
 
-    public function setRequest(HTTP_Request $request)
+    public function setRequest(Request $request)
     {
         $this->_request = $request;
     }

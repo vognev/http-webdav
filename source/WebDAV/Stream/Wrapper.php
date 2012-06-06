@@ -1,12 +1,12 @@
 <?php
-require_once 'WebDAV/Stream/Exception.php';
-require_once "WebDAV/Client.php";
+
+namespace WebDAV\Stream;
 
 /**
  * stat mode flags: http://www.php.net/manual/en/function.stat.php#34919
  */
 
-class WebDAV_Stream_Wrapper
+class Wrapper
 {
     public static $debug = true;
 
@@ -15,7 +15,7 @@ class WebDAV_Stream_Wrapper
     public static $_transport = 'Curl';
 
     /**
-     * @var HTTP_URL
+     * @var \HTTP\URL
      */
     protected $_url;
 
@@ -80,7 +80,7 @@ class WebDAV_Stream_Wrapper
         if ($this->_handle) {
 
             if ($this->_handleChanged && !$this->_getClient()->put($this->_url, $this->_handle)) {
-                throw new WebDAV_Stream_Exception(sprintf(
+                throw new Exception(sprintf(
                     'failed to update WebDAV resource at %s', $this->_url->getUrl()
                 ));
             }
@@ -132,7 +132,7 @@ class WebDAV_Stream_Wrapper
 
         if ($url = $this->_parseStreamUrl((string) $url)) {
             // issue propfind
-            $propfind = new WebDAV_Propfind(WebDAV_Propfind::MODE_PROP);
+            $propfind = new \WebDAV\Propfind(\WebDAV\Propfind::MODE_PROP);
             $propfind->setProperty('resourcetype');
             $propfind->setProperty('getcontentlength');
             $propfind->setProperty('getlastmodified');
@@ -143,13 +143,13 @@ class WebDAV_Stream_Wrapper
 
             if (207 == $propfindResponse->getResponseCode()) {
 
-                $multistatus = new WebDAV_Multistatus(
+                $multistatus = new \WebDAV\Multistatus(
                     $propfindResponse->getBodyAsString()
                 );
 
                 // in case of directory some servers append it with '/'
-                $propstat = false === ($propstat = $multistatus->getHrefPropstat($url->getPart(HTTP_URL::URL_PATH))) ?
-                            $multistatus->getHrefPropstat($url->getPart(HTTP_URL::URL_PATH) . '/')
+                $propstat = false === ($propstat = $multistatus->getHrefPropstat($url->getPart(\HTTP\URL::URL_PATH))) ?
+                            $multistatus->getHrefPropstat($url->getPart(\HTTP\URL::URL_PATH) . '/')
                             : $propstat;
 
                 if (($typeprop = $propstat->getByName('resourcetype', 'DAV:'))) {
@@ -158,7 +158,7 @@ class WebDAV_Stream_Wrapper
                             'DAV:' == $typeprop->getDomElement()->firstChild->namespaceURI) {
                             $stat['mode'] |= 040000; // S_IFDIR
                         } else { // have no idea how to parse this resourcetype
-                            throw new WebDAV_Stream_Exception("propfind response contains unknown 'resourcetype' node");
+                            throw new Exception("propfind response contains unknown 'resourcetype' node");
                         }
                     } else { // node seems is a file
                         $stat['mode'] |= 0100000; // S_IREG
@@ -171,14 +171,14 @@ class WebDAV_Stream_Wrapper
                         $attributes = $mtimeprop->getDomElement()->attributes;
                         if ('dateTime.rfc1123' == $attributes->getNamedItem('dt')->nodeValue) {
                             // todo: in whose timezone (ours or theirs) this should be?
-                            $date = DateTime::createFromFormat(DateTime::RFC1123, $mtimeprop->getValue());
+                            $date = \DateTime::createFromFormat(\DateTime::RFC1123, $mtimeprop->getValue());
                             $this->_stat['atime'] = $this->_stat['mtime'] = $date->getTimestamp();
                         } else { // fuck them all
                             $this->_stat['atime'] = $this->_stat['mtime'] = strtotime($mtimeprop->getValue());
                         }
                     }
                 } else {
-                    throw new WebDAV_Stream_Exception("propfind response does not contains 'resourcetype' node");
+                    throw new Exception("propfind response does not contains 'resourcetype' node");
                 }
             } elseif (404 == $propfindResponse->getResponseCode()) {
                 return array('mode' => 0);
@@ -198,14 +198,14 @@ class WebDAV_Stream_Wrapper
 
         // directory should end up with '/' [?: and have no query/fragment]
         $this->_url->setPart(
-            HTTP_URL::URL_PATH,
+            \HTTP\URL::URL_PATH,
             rtrim($this->_url->getPart('path'), '/') . '/'
         );
-        $this->_url->setPart(HTTP_URL::URL_QUERY,       null);
-        $this->_url->setPart(HTTP_URL::URL_FRAGMENT,    null);
+        $this->_url->setPart(\HTTP\URL::URL_QUERY,       null);
+        $this->_url->setPart(\HTTP\URL::URL_FRAGMENT,    null);
 
 
-        $propfind = new WebDAV_Propfind(WebDAV_Propfind::MODE_PROP);
+        $propfind = new \WebDAV\Propfind(\WebDAV\Propfind::MODE_PROP);
         $propfind->setProperty('resourcetype');
 
         $response = $this->_getClient()->propfind($this->_url, $propfind, '1');
@@ -214,7 +214,7 @@ class WebDAV_Stream_Wrapper
             return false;
         }
 
-        $multistatus    = new WebDAV_Multistatus($response->getBodyAsString());
+        $multistatus    = new \WebDAV\Multistatus($response->getBodyAsString());
         $propstats      = $multistatus->getPropstats();
 
         $this->_dirEntries  = array();
@@ -222,7 +222,7 @@ class WebDAV_Stream_Wrapper
 
         foreach(array_keys($propstats) as $propstatHref) {
 
-            if ($propstatHref == $this->_url->getPart(HTTP_URL::URL_PATH))
+            if ($propstatHref == $this->_url->getPart(\HTTP\URL::URL_PATH))
                 continue; // skip .
 
             $this->_dirEntries[] = basename($propstatHref);
@@ -299,14 +299,14 @@ class WebDAV_Stream_Wrapper
 
     protected function _parseStreamUrl($path)
     {
-        $url = new HTTP_URL($path);
+        $url = new \HTTP\URL($path);
 
-        switch ($url->getPart(HTTP_URL::URL_SCHEME)) {
+        switch ($url->getPart(\HTTP\URL::URL_SCHEME)) {
             case 'dav':
-                $url->setPart(HTTP_URL::URL_SCHEME, 'http');
+                $url->setPart(\HTTP\URL::URL_SCHEME, 'http');
                 break;
             case 'davs':
-                $url->setPart(HTTP_URL::URL_SCHEME, 'https');
+                $url->setPart(\HTTP\URL::URL_SCHEME, 'https');
                 break;
             default:
                 return false;
@@ -326,7 +326,7 @@ class WebDAV_Stream_Wrapper
             $context = array();
         }
 
-        return new WebDAV_Client(
+        return new \WebDAV\Client(
             array(
                 'transport'     => array(
                     'class'     => self::$_transport,
@@ -337,8 +337,11 @@ class WebDAV_Stream_Wrapper
     }
 
     /* static methods */
-}
 
-stream_wrapper_register('dav',   'WebDAV_Stream_Wrapper');
-stream_wrapper_register('davs',  'WebDAV_Stream_Wrapper');
+    public static function register()
+    {
+        stream_wrapper_register('dav',   'WebDAV\Stream\Wrapper');
+        stream_wrapper_register('davs',  'WebDAV\Stream\Wrapper');
+    }
+}
 

@@ -23,4 +23,6 @@ if (file_exists('options.php')) {
     require_once 'options.php.dist';
 }
 
+require_once 'autoload.php';
+
 unset($phpunitVersion);

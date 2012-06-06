@@ -1,6 +1,8 @@
 <?php
 
-class WebDAV_Propfind extends DOMDocument
+namespace WebDAV;
+
+class Propfind extends \DOMDocument
 {
     /**
      * build allprop request
@@ -13,7 +15,7 @@ class WebDAV_Propfind extends DOMDocument
     const MODE_PROP     = 'PROP';
 
     /**
-     * @var DOMElement
+     * @var \DOMElement
      */
     protected $_root;
 
@@ -47,7 +49,7 @@ class WebDAV_Propfind extends DOMDocument
                 $this->_root = $this->_root->firstChild;
                 break;
             default:
-                throw new WebDAV_Exception("Unknown PROPFIND type '{$this->_mode}'");
+                throw new Exception("Unknown PROPFIND type '{$this->_mode}'");
         }
     }
 
@@ -62,18 +64,18 @@ class WebDAV_Propfind extends DOMDocument
     }
 
     /**
-     * @param string|DOMElement $node
+     * @param string|\DOMElement $node
      * @param null $ns
      * @param null $nsURI
-     * @throws WebDAV_Exception
+     * @throws Exception
      */
     public function setProperty($node, $ns = null, $nsURI = null)
     {
         if (self::MODE_PROP !== $this->_mode) {
-            throw new WebDAV_Exception("Custom properties can be added only in PROP mode");
+            throw new Exception("Custom properties can be added only in PROP mode");
         }
 
-        if ($node instanceof DOMElement) {
+        if ($node instanceof \DOMElement) {
             $this->_root->appendChild($node);
             return;
         }

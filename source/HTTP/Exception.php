@@ -1,3 +1,5 @@
 <?php
 
-class HTTP_Exception extends Exception {}
+namespace HTTP;
+
+class Exception extends \Exception {}

@@ -1,4 +1,5 @@
 <?php
-require_once "HTTP/Exception.php";
 
-class HTTP_Request_Exception extends HTTP_Exception {}
+namespace HTTP\Request;
+
+class Exception extends \HTTP\Exception {}

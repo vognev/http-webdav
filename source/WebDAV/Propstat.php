@@ -1,7 +1,8 @@
 <?php
-require_once 'WebDAV/Prop.php';
 
-class WebDAV_Propstat
+namespace WebDAV;
+
+class Propstat
 {
     protected $_properties  = array();
 
@@ -9,7 +10,7 @@ class WebDAV_Propstat
 
     /**
      * @param $idx
-     * @return WebDAV_Prop
+     * @return Prop
      */
     public function item($idx)
     {
@@ -17,18 +18,18 @@ class WebDAV_Propstat
     }
 
     /**
-     * @param WebDAV_Prop|DOMNode $prop
+     * @param Prop|\DOMNode $prop
      */
     public function push($prop)
     {
-        $this->_properties[] = ($prop instanceof WebDAV_Prop) ? $prop : new WebDAV_Prop($prop);
+        $this->_properties[] = ($prop instanceof Prop) ? $prop : new Prop($prop);
         $this->_length++;
     }
 
     /**
      * @param $name
      * @param null|string $namespaceURI
-     * @return bool|WebDAV_Prop
+     * @return bool|Prop
      */
     public function getByName($name, $namespaceURI = null)
     {

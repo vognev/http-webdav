@@ -1,28 +1,24 @@
 <?php
-require_once "HTTP/Client/Exception.php";
 
-require_once "HTTP/Transport/Abstract.php";
+namespace HTTP;
 
-require_once "HTTP/Request.php";
-require_once "HTTP/Response.php";
-
-class HTTP_Client
+class Client
 {
-    protected $_userAgent       = 'HTTP_Client';
+    protected $_userAgent       = 'HTTP\Client';
 
     /**
-     * @var HTTP_Transport_Abstract
+     * @var \HTTP\Transport
      */
     protected $_transport;
 
     public function __construct($options = array())
     {
         if (isset($options['transport'])) {
-            if ($options['transport'] instanceof HTTP_Transport_Abstract) {
+            if ($options['transport'] instanceof Transport) {
                 $this->setTransport($options['transport']);
             } elseif (is_array($options['transport'])) {
                 $this->setTransport(
-                    HTTP_Transport_Abstract::factory(
+                    Transport::factory(
                         $options['transport']['class'],
                         $options['transport']['options']
                     )
@@ -41,7 +37,7 @@ class HTTP_Client
         $this->_userAgent   = $userAgent;
     }
 
-    public function setTransport(HTTP_Transport_Abstract $transport)
+    public function setTransport(Transport $transport)
     {
         $this->_transport = $transport;
     }
@@ -49,19 +45,19 @@ class HTTP_Client
     public function getTransport()
     {
         if (null === $this->_transport) {
-            throw new HTTP_Client_Exception("Before using client you should set transport");
+            throw new Client\Exception("Before using client you should set transport");
         }
         return $this->_transport;
     }
 
     public function createRequest($url)
     {
-        $request = new HTTP_Request($url);
+        $request = new Request($url);
         $request->setHeader('User-Agent', $this->getUserAgent());
         return $request;
     }
 
-    public function executeRequest(HTTP_Request $request)
+    public function executeRequest(Request $request)
     {
         $response = $this->getTransport()->execute($request);
         $response->setRequest($request);

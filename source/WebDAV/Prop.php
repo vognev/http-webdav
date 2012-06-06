@@ -1,11 +1,13 @@
 <?php
 
-class WebDAV_Prop
+namespace WebDAV;
+
+class Prop
 {
-    /** @var DOMNode */
+    /** @var \DOMNode */
     protected $_element;
 
-    public function __construct(DOMNode $element)
+    public function __construct(\DOMNode $element)
     {
         $this->_element     = $element;
     }

@@ -1,8 +1,8 @@
 <?php
 
-require_once 'HTTP/URL/Exception.php';
+namespace HTTP;
 
-class HTTP_URL
+class URL
 {
     protected $_parts   = array();
 
@@ -65,7 +65,7 @@ class HTTP_URL
     public function setPart($name, $value)
     {
         if (false === array_search($name, self::$_validParts)) {
-            throw new HTTP_URL_Exception("Invalid part '$name' specified");
+            throw new \HTTP\URL\Exception("Invalid part '$name' specified");
         }
         $this->_parts[$name] = $value;
         return $this;

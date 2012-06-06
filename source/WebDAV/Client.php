@@ -1,24 +1,21 @@
 <?php
-require_once 'HTTP/Client.php';
-require_once 'WebDAV/Client/Exception.php';
 
-require_once 'WebDAV/Propfind.php';
-require_once 'WebDAV/Multistatus.php';
+namespace WebDAV;
 
-class WebDAV_Client extends HTTP_Client
+class Client extends \HTTP\Client
 {
-    protected $_userAgent   = 'WebDAV_Client';
+    protected $_userAgent   = 'WebDAV\\Client';
 
     protected $_contentType = 'application/octet-stream';
 
     public function __construct($options = array())
     {
         if (isset($options['transport'])) {
-            if ($options['transport'] instanceof HTTP_Transport_Abstract) {
+            if ($options['transport'] instanceof \HTTP\Transport) {
                 $this->setTransport($options['transport']);
             } elseif (is_array($options['transport'])) {
                 $this->setTransport(
-                    HTTP_Transport_Abstract::factory(
+                    \HTTP\Transport::factory(
                         $options['transport']['class'],
                         $options['transport']['options']
                     )
@@ -29,13 +26,13 @@ class WebDAV_Client extends HTTP_Client
 
     /**
      * @param string $url
-     * @param WebDAV_Propfind $propfind
+     * @param Propfind $propfind
      * @param string $depth
-     * @return HTTP_Response
+     * @return \HTTP\Response
      */
-    public function propfind($url, WebDAV_Propfind $propfind, $depth = '0')
+    public function propfind($url, Propfind $propfind, $depth = '0')
     {
-        $url = new HTTP_URL($url);
+        $url = new \HTTP\URL($url);
 
         if (!$this->_getOptions($url, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -52,7 +49,7 @@ class WebDAV_Client extends HTTP_Client
         return $this->executeRequest($request);
     }
 
-    public function get(HTTP_URL $url)
+    public function get(\HTTP\URL $url)
     {
         if (!$this->_getOptions($url, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -64,7 +61,7 @@ class WebDAV_Client extends HTTP_Client
         return $this->executeRequest($request);
     }
 
-    public function put(HTTP_URL $url, $body)
+    public function put(\HTTP\URL $url, $body)
     {
         if (!$this->_getOptions($url, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -92,7 +89,7 @@ class WebDAV_Client extends HTTP_Client
         }
     }
 
-    public function mkcol(HTTP_URL $url)
+    public function mkcol(\HTTP\URL $url)
     {
         if (!$this->_getOptions($url, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -107,7 +104,7 @@ class WebDAV_Client extends HTTP_Client
         return $response->getResponseCode() == 201;
     }
 
-    public function rename(HTTP_URL $old, HTTP_URL $new)
+    public function rename(\HTTP\URL $old, \HTTP\URL $new)
     {
         if (!$this->_getOptions($old, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -129,7 +126,7 @@ class WebDAV_Client extends HTTP_Client
         }
     }
 
-    public function delete(HTTP_URL $url)
+    public function delete(\HTTP\URL $url)
     {
         if (!$this->_getOptions($url, $levels, $options) ||
             !in_array('1', $levels) ||
@@ -144,26 +141,26 @@ class WebDAV_Client extends HTTP_Client
         return 204 === $response->getResponseCode();
     }
 
-    public function lock(HTTP_URL $url, $mode)
+    public function lock(\HTTP\URL $url, $mode)
     {
 
     }
 
     public function createRequest($url)
     {
-        $request = new HTTP_Request($url);
+        $request = new \HTTP\Request($url);
         $request->setHeader('Content-Type', $this->_contentType);
         $request->setHeader('User-Agent',   $this->_userAgent);
         return $request;
     }
 
     /**
-     * @param HTTP_URL $url
+     * @param \HTTP\URL $url
      * @param array|null &$levels
      * @param array|null &$options
      * @return bool
      */
-    protected function _getOptions(HTTP_URL $url, &$levels = null, &$options = null)
+    protected function _getOptions(\HTTP\URL $url, &$levels = null, &$options = null)
     {
         $request    = $this->createRequest($url);
 

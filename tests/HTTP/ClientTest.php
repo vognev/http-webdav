@@ -1,7 +1,6 @@
 <?php
-require_once "HTTP/Transport/AbstractLoaded.php";
+require_once "HTTP/Transport/AbstractTransport.php";
 require_once 'PHPUnit/Framework/TestCase.php';
-require_once "HTTP/Client.php";
 
 class HTTP_ClientTest extends PHPUnit_Framework_TestCase
 {
@@ -9,33 +8,33 @@ class HTTP_ClientTest extends PHPUnit_Framework_TestCase
 
     public function testCreation()
     {
-        $transport          = new HTTP_Transport_AbstractLoaded();
+        $transport          = new \HTTP\Transport\AbstractTransport();
 
-        $client = new HTTP_Client(array(
+        $client = new HTTP\Client(array(
             'transport'     => $transport
         ));
 
         $this->assertEquals($client->getTransport(), $transport);
 
-        $client = new HTTP_Client(array(
+        $client = new HTTP\Client(array(
             'transport'     => array(
-                'class'     => 'AbstractLoaded',
+                'class'     => 'AbstractTransport',
                 'options'   => array()
             )
         ));
 
-        $this->assertInstanceOf('HTTP_Transport_AbstractLoaded', $client->getTransport());
+        $this->assertInstanceOf('\HTTP\Transport\AbstractTransport', $client->getTransport());
 
-        $client = new HTTP_Client();
+        $client = new HTTP\Client();
         try {
             $client->getTransport();
-            $this->fail("HTTP_Client without transport does not throws exception");
-        } catch (HTTP_Client_Exception $e) {}
+            $this->fail("Client without transport does not throws exception");
+        } catch (HTTP\Client\Exception $e) {}
     }
 
     public function testUserAgentOperations()
     {
-        $client     = new HTTP_Client();
+        $client     = new \HTTP\Client();
 
         $client->setUserAgent(self::UA);
         $this->assertEquals(self::UA, $client->getUserAgent());
@@ -43,15 +42,15 @@ class HTTP_ClientTest extends PHPUnit_Framework_TestCase
 
     public function testRequestOperations()
     {
-        $client     = new HTTP_Client();
-        $transport  = $this->getMockForAbstractClass('HTTP_Transport_Abstract');
+        $client     = new \HTTP\Client();
+        $transport  = $this->getMockForAbstractClass('\HTTP\Transport');
 
         $client->setTransport($transport);
 
         $request    = $client->createRequest('http://example.tld/');
-        $response   = new HTTP_Response();
+        $response   = new \HTTP\Response();
 
-        $this->assertInstanceOf('HTTP_Request', $request);
+        $this->assertInstanceOf('\HTTP\Request', $request);
 
         $transport
             ->expects($this->once())

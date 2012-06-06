@@ -1,23 +1,23 @@
 <?php
-require_once "HTTP/Transport/Abstract.php";
-require_once "HTTP/Transport/Exception.php";
 
-class HTTP_Transport_Curl extends HTTP_Transport_Abstract
+namespace HTTP\Transport;
+
+class Curl extends \HTTP\Transport
 {
     public function __construct(array $options = array())
     {
         // @codeCoverageIgnoreStart
         if (!function_exists('curl_init')) {
-            throw new HTTP_Transport_Exception("cURL Transport requires cURL extension");
+            throw new Exception("cURL Transport requires cURL extension");
         }
         // @codeCoverageIgnoreEnd
 
         parent::__construct($options);
     }
 
-    public function execute(HTTP_Request $request)
+    public function execute(\HTTP\Request $request)
     {
-        $response   = new HTTP_Response();
+        $response   = new \HTTP\Response();
         $response->setRequest($request);
 
         $ch         = curl_init($request->getUrl()->getUrl());
@@ -35,6 +35,9 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
 
             $options[CURLOPT_INFILE]                = $body;
             $options[CURLOPT_INFILESIZE]            = $size;
+
+            $request->setHeader('Content-Length', $size);
+
         } else {
             $options[CURLOPT_POSTFIELDS]            = $request->getBodyAsString();
         }
@@ -67,7 +70,7 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
         curl_setopt_array($ch, $options);
 
         if (!$r = curl_exec($ch)) {
-            throw new HTTP_Transport_Exception(curl_error($ch));
+            throw new Exception(curl_error($ch));
         }
 
         rewind($hh); rewind($fh);
@@ -75,7 +78,7 @@ class HTTP_Transport_Curl extends HTTP_Transport_Abstract
         $response->setResponseCode(curl_getinfo($ch, CURLINFO_HTTP_CODE));
         $response->setBody($fh);
 
-        $_hp = new HTTP_Transport_HeadersParser($hh);
+        $_hp = new \HTTP\HeadersParser($hh);
 
         foreach($_hp as $name => $value) {
             $response->setHeader($name, $value);
