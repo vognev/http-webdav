@@ -36,8 +36,6 @@ class Curl extends \HTTP\Transport
             $options[CURLOPT_INFILE]                = $body;
             $options[CURLOPT_INFILESIZE]            = $size;
 
-            $request->setHeader('Content-Length', $size);
-
         } else {
             $options[CURLOPT_POSTFIELDS]            = $request->getBodyAsString();
         }
